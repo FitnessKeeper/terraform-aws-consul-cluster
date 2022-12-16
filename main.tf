@@ -14,44 +14,44 @@ data "aws_acm_certificate" "cert" {
   most_recent = true
 }
 
-data "template_file" "consul" {
-  template = file("${path.module}/files/consul.json")
-
-  vars = {
-    datacenter                     = coalesce(var.datacenter_name, data.aws_vpc.vpc.tags["Name"])
-    definitions                    = join(" ", var.definitions)
-    env                            = var.env
-    enable_script_checks           = var.enable_script_checks
-    enable_script_checks           = var.enable_script_checks ? "true" : "false"
-    image                          = var.consul_image
-    registrator_image              = var.registrator_image
-    sidecar_image                  = var.sidecar_image
-    consul_memory_reservation      = var.consul_memory_reservation
-    registrator_memory_reservation = var.registrator_memory_reservation
-    sidecar_memory_reservation     = var.sidecar_memory_reservation
-    join_ec2_tag_key               = var.join_ec2_tag_key
-    join_ec2_tag                   = var.join_ec2_tag
-    awslogs_group                  = "consul-${var.env}"
-    awslogs_stream_prefix          = "consul-${var.env}"
-    awslogs_region                 = var.region
-    sha_htpasswd_hash              = var.sha_htpasswd_hash
-    oauth2_proxy_htpasswd_file     = var.oauth2_proxy_htpasswd_file
-    oauth2_proxy_provider          = var.oauth2_proxy_provider
-    oauth2_proxy_github_org        = var.oauth2_proxy_github_org
-    oauth2_proxy_github_team       = join(",", var.oauth2_proxy_github_team)
-    oauth2_proxy_client_id         = var.oauth2_proxy_client_id
-    oauth2_proxy_client_secret     = var.oauth2_proxy_client_secret
-    raft_multiplier                = var.raft_multiplier
-    leave_on_terminate             = var.leave_on_terminate ? "true" : "false"
-    s3_backup_bucket               = var.s3_backup_bucket
-  }
+locals {
+  template_consul = templatefile(
+    "${path.module}/files/consul.json",
+    {
+      datacenter                     = coalesce(var.datacenter_name, data.aws_vpc.vpc.tags["Name"])
+      definitions                    = join(" ", var.definitions)
+      env                            = var.env
+      enable_script_checks           = var.enable_script_checks
+      enable_script_checks           = var.enable_script_checks ? "true" : "false"
+      image                          = var.consul_image
+      registrator_image              = var.registrator_image
+      sidecar_image                  = var.sidecar_image
+      consul_memory_reservation      = var.consul_memory_reservation
+      registrator_memory_reservation = var.registrator_memory_reservation
+      sidecar_memory_reservation     = var.sidecar_memory_reservation
+      join_ec2_tag_key               = var.join_ec2_tag_key
+      join_ec2_tag                   = var.join_ec2_tag
+      awslogs_group                  = "consul-${var.env}"
+      awslogs_stream_prefix          = "consul-${var.env}"
+      awslogs_region                 = var.region
+      sha_htpasswd_hash              = var.sha_htpasswd_hash
+      oauth2_proxy_htpasswd_file     = var.oauth2_proxy_htpasswd_file
+      oauth2_proxy_provider          = var.oauth2_proxy_provider
+      oauth2_proxy_github_org        = var.oauth2_proxy_github_org
+      oauth2_proxy_github_team       = join(",", var.oauth2_proxy_github_team)
+      oauth2_proxy_client_id         = var.oauth2_proxy_client_id
+      oauth2_proxy_client_secret     = var.oauth2_proxy_client_secret
+      raft_multiplier                = var.raft_multiplier
+      leave_on_terminate             = var.leave_on_terminate ? "true" : "false"
+      s3_backup_bucket               = var.s3_backup_bucket
+    }
+  )
 }
-
 # End Data block
 
 resource "aws_ecs_task_definition" "consul" {
   family                = "consul-${var.env}"
-  container_definitions = data.template_file.consul.rendered
+  container_definitions = local.template_consul
   network_mode          = "host"
   task_role_arn         = aws_iam_role.consul_task.arn
 
